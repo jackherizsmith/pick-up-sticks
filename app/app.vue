@@ -90,8 +90,8 @@ import { ref, computed } from 'vue'
 const canvasWidth = 350
 const canvasHeight = 500
 const stickWidth = 8
-const stickLength = 120
-const numSticks = 12
+const stickLength = 200
+const numSticks = 10
 
 const gameStarted = ref(false)
 const gameComplete = ref(false)
@@ -112,37 +112,106 @@ const stickColours = [
 ]
 
 function generateSticks() {
-  const newSticks = []
-  const padding = 30
+  const maxAttempts = 100
+  let attempts = 0
 
-  for (let i = 0; i < numSticks; i++) {
-    const angle = Math.random() * Math.PI * 2
-    const centerX = padding + Math.random() * (canvasWidth - padding * 2)
-    const centerY = padding + Math.random() * (canvasHeight - padding * 2)
+  while (attempts < maxAttempts) {
+    const newSticks = []
+    const centerRegionX = canvasWidth / 2
+    const centerRegionY = canvasHeight / 2
+    const regionRadius = Math.min(canvasWidth, canvasHeight) / 3
 
-    const halfLength = stickLength / 2
-    const x1 = centerX + Math.cos(angle) * halfLength
-    const y1 = centerY + Math.sin(angle) * halfLength
-    const x2 = centerX - Math.cos(angle) * halfLength
-    const y2 = centerY - Math.sin(angle) * halfLength
+    for (let i = 0; i < numSticks; i++) {
+      const angle = Math.random() * Math.PI * 2
+      const distanceFromCenter = Math.random() * regionRadius
+      const offsetAngle = Math.random() * Math.PI * 2
 
-    newSticks.push({
-      id: i,
-      x1,
-      y1,
-      x2,
-      y2,
-      angle,
-      centerX,
-      centerY,
-      colour: stickColours[i % stickColours.length],
-      selected: false,
-      order: null,
-      zIndex: i
-    })
+      const centerX = centerRegionX + Math.cos(offsetAngle) * distanceFromCenter
+      const centerY = centerRegionY + Math.sin(offsetAngle) * distanceFromCenter
+
+      const halfLength = stickLength / 2
+      const x1 = centerX + Math.cos(angle) * halfLength
+      const y1 = centerY + Math.sin(angle) * halfLength
+      const x2 = centerX - Math.cos(angle) * halfLength
+      const y2 = centerY - Math.sin(angle) * halfLength
+
+      newSticks.push({
+        id: i,
+        x1,
+        y1,
+        x2,
+        y2,
+        angle,
+        centerX,
+        centerY,
+        colour: stickColours[i % stickColours.length],
+        selected: false,
+        order: null,
+        zIndex: i
+      })
+    }
+
+    if (validateStickConfiguration(newSticks)) {
+      return newSticks
+    }
+
+    attempts++
   }
 
-  return newSticks
+  return generateSticks()
+}
+
+function validateStickConfiguration(sticks) {
+  for (let i = 0; i < sticks.length; i++) {
+    let hasOverlap = false
+    for (let j = 0; j < sticks.length; j++) {
+      if (i !== j && doSegmentsIntersect(sticks[i], sticks[j])) {
+        hasOverlap = true
+        break
+      }
+    }
+    if (!hasOverlap) {
+      return false
+    }
+  }
+
+  const correctOrder = calculateCorrectOrder(sticks)
+  if (correctOrder.length !== sticks.length) {
+    return false
+  }
+
+  const canPickMultiple = sticks.some((stick, index) => {
+    const otherStick = sticks.find((s, i) => i !== index && s.zIndex !== stick.zIndex)
+    if (!otherStick) return false
+
+    const isBlocked = sticks.some(other => {
+      return other.zIndex > stick.zIndex && doSegmentsIntersect(stick, other)
+    })
+
+    const isOtherBlocked = sticks.some(other => {
+      return other.zIndex > otherStick.zIndex && doSegmentsIntersect(otherStick, other)
+    })
+
+    return !isBlocked && !isOtherBlocked && stick.zIndex !== otherStick.zIndex
+  })
+
+  return !canPickMultiple
+}
+
+function doSegmentsIntersect(stick1, stick2) {
+  const x1 = stick1.x1, y1 = stick1.y1, x2 = stick1.x2, y2 = stick1.y2
+  const x3 = stick2.x1, y3 = stick2.y1, x4 = stick2.x2, y4 = stick2.y2
+
+  const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
+  if (Math.abs(denom) < 0.0001) {
+    return false
+  }
+
+  const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom
+  const u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denom
+
+  const buffer = 0.1
+  return t >= -buffer && t <= 1 + buffer && u >= -buffer && u <= 1 + buffer
 }
 
 function calculateCorrectOrder(sticks) {
@@ -150,38 +219,28 @@ function calculateCorrectOrder(sticks) {
   const remaining = [...sticks]
 
   while (remaining.length > 0) {
+    let foundUnblocked = false
     for (let i = 0; i < remaining.length; i++) {
       const stick = remaining[i]
       const isBlocked = remaining.some((other, j) => {
         if (i === j) return false
-        return other.zIndex > stick.zIndex && sticksIntersect(stick, other)
+        return other.zIndex > stick.zIndex && doSegmentsIntersect(stick, other)
       })
 
       if (!isBlocked) {
         order.push(stick.id)
         remaining.splice(i, 1)
+        foundUnblocked = true
         break
       }
+    }
+
+    if (!foundUnblocked && remaining.length > 0) {
+      break
     }
   }
 
   return order
-}
-
-function sticksIntersect(stick1, stick2) {
-  const buffer = stickWidth * 2
-
-  const minX1 = Math.min(stick1.x1, stick1.x2) - buffer
-  const maxX1 = Math.max(stick1.x1, stick1.x2) + buffer
-  const minY1 = Math.min(stick1.y1, stick1.y2) - buffer
-  const maxY1 = Math.max(stick1.y1, stick1.y2) + buffer
-
-  const minX2 = Math.min(stick2.x1, stick2.x2) - buffer
-  const maxX2 = Math.max(stick2.x1, stick2.x2) + buffer
-  const minY2 = Math.min(stick2.y1, stick2.y2) - buffer
-  const maxY2 = Math.max(stick2.y1, stick2.y2) + buffer
-
-  return !(maxX1 < minX2 || minX1 > maxX2 || maxY1 < minY2 || minY1 > maxY2)
 }
 
 function startGame() {
