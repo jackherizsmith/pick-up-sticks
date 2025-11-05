@@ -347,10 +347,9 @@ function getResultStickColour(stick) {
 }
 
 async function shareResults() {
-  const timeText = `Time: ${formatTime(elapsedTime.value)}`
   const text = isCorrect.value
-    ? `🎉 I completed Pick Up Sticks in the correct order in ${formatTime(elapsedTime.value)}! Can you beat it?\n\n${window.location.href}`
-    : `I played Pick Up Sticks in ${formatTime(elapsedTime.value)} with ${incorrectCount.value} incorrect ${incorrectCount.value === 1 ? 'stick' : 'sticks'}! Can you do better?\n\n${window.location.href}`
+    ? `Pick Up Sticks 🎯\n✅ Perfect!\n⏱️ ${formatTime(elapsedTime.value)}\n\nCan you beat it?\n\n${window.location.href}`
+    : `Pick Up Sticks 🎮\n❌ ${incorrectCount.value} incorrect\n⏱️ ${formatTime(elapsedTime.value)}\n\nCan you do better?\n\n${window.location.href}`
 
   try {
     await navigator.clipboard.writeText(text)
