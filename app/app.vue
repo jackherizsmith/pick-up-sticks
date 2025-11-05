@@ -27,6 +27,16 @@
             :y1="stick.y1"
             :x2="stick.x2"
             :y2="stick.y2"
+            stroke="#000000"
+            :stroke-width="stickWidth + 2"
+            :stroke-linecap="'round'"
+            class="stick-border"
+          />
+          <line
+            :x1="stick.x1"
+            :y1="stick.y1"
+            :x2="stick.x2"
+            :y2="stick.y2"
             :stroke="getStickColour(stick)"
             :stroke-width="stickWidth"
             :stroke-linecap="'round'"
@@ -69,6 +79,10 @@
         }}
       </p>
 
+      <div class="time-display">
+        <p class="time-text">⏱️ Time: {{ formatTime(elapsedTime) }}</p>
+      </div>
+
       <div class="result-details" v-if="!isCorrect">
         <p>Your order: {{ selectedSticks.map(s => s.id + 1).join(', ') }}</p>
         <p>Correct order: {{ correctOrder.map(id => id + 1).join(', ') }}</p>
@@ -101,6 +115,8 @@ const selectedSticks = ref([])
 const correctOrder = ref([])
 const shareMessage = ref('')
 const gameCanvas = ref(null)
+const startTime = ref(null)
+const elapsedTime = ref(0)
 
 const stickColours = [
   '#E74C3C', // red
@@ -249,8 +265,10 @@ function startGame() {
   isCorrect.value = false
   selectedSticks.value = []
   shareMessage.value = ''
+  elapsedTime.value = 0
   sticks.value = generateSticks()
   correctOrder.value = calculateCorrectOrder(sticks.value)
+  startTime.value = Date.now()
 }
 
 function resetGame() {
@@ -280,7 +298,18 @@ function handleCanvasClick(event) {
 function checkOrder() {
   const selectedOrder = selectedSticks.value.map(s => s.id)
   isCorrect.value = JSON.stringify(selectedOrder) === JSON.stringify(correctOrder.value)
+
+  if (startTime.value) {
+    elapsedTime.value = Math.floor((Date.now() - startTime.value) / 1000)
+  }
+
   gameComplete.value = true
+}
+
+function formatTime(seconds) {
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`
 }
 
 function getStickColour(stick) {
@@ -291,10 +320,10 @@ function getStickColour(stick) {
 }
 
 async function shareResults() {
-  const result = isCorrect.value ? 'correct' : 'incorrect'
+  const timeText = `Time: ${formatTime(elapsedTime.value)}`
   const text = isCorrect.value
-    ? `🎉 I completed Pick Up Sticks in the correct order! Can you beat it?\n\n${window.location.href}`
-    : `I played Pick Up Sticks! Can you do better?\n\n${window.location.href}`
+    ? `🎉 I completed Pick Up Sticks in the correct order in ${formatTime(elapsedTime.value)}! Can you beat it?\n\n${window.location.href}`
+    : `I played Pick Up Sticks in ${formatTime(elapsedTime.value)}! Can you do better?\n\n${window.location.href}`
 
   try {
     await navigator.clipboard.writeText(text)
@@ -463,8 +492,19 @@ async function shareResults() {
 
 .result-message {
   color: #666;
-  margin: 0 0 1.5rem 0;
+  margin: 0 0 1rem 0;
   line-height: 1.5;
+}
+
+.time-display {
+  margin-bottom: 1.5rem;
+}
+
+.time-text {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #667eea;
+  margin: 0;
 }
 
 .result-details {
