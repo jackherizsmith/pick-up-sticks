@@ -88,6 +88,36 @@
         <p>{{ incorrectCount === 1 ? 'This stick was' : 'These sticks were' }} still blocked by {{ incorrectCount === 1 ? 'another' : 'other' }} {{ incorrectCount === 1 ? 'stick' : 'sticks' }} on top when you tried to pick {{ incorrectCount === 1 ? 'it' : 'them' }} up.</p>
       </div>
 
+      <div v-if="!isCorrect" class="results-canvas-container">
+        <svg
+          class="results-canvas"
+          :viewBox="`0 0 ${canvasWidth} ${canvasHeight}`"
+        >
+          <g v-for="stick in sticks" :key="stick.id">
+            <line
+              :x1="stick.x1"
+              :y1="stick.y1"
+              :x2="stick.x2"
+              :y2="stick.y2"
+              stroke="#000000"
+              :stroke-width="stickWidth + 2"
+              :stroke-linecap="'round'"
+              class="result-stick-border"
+            />
+            <line
+              :x1="stick.x1"
+              :y1="stick.y1"
+              :x2="stick.x2"
+              :y2="stick.y2"
+              :stroke="getResultStickColour(stick)"
+              :stroke-width="stickWidth"
+              :stroke-linecap="'round'"
+              class="result-stick"
+            />
+          </g>
+        </svg>
+      </div>
+
       <div class="button-group">
         <button @click="startGame" class="btn btn-primary">New Game</button>
         <button @click="shareResults" class="btn btn-secondary">Share Results</button>
@@ -117,6 +147,7 @@ const gameCanvas = ref(null)
 const startTime = ref(null)
 const elapsedTime = ref(0)
 const incorrectCount = ref(0)
+const incorrectStickIds = ref([])
 
 const stickColours = [
   '#E74C3C', // red
@@ -218,6 +249,7 @@ function startGame() {
   shareMessage.value = ''
   elapsedTime.value = 0
   incorrectCount.value = 0
+  incorrectStickIds.value = []
   sticks.value = generateSticks()
   startTime.value = Date.now()
 }
@@ -250,6 +282,7 @@ function checkOrder() {
   const validation = validateUserOrder(selectedSticks.value)
   isCorrect.value = validation.isValid
   incorrectCount.value = validation.incorrectCount
+  incorrectStickIds.value = validation.incorrectStickIds
 
   if (startTime.value) {
     elapsedTime.value = Math.floor((Date.now() - startTime.value) / 1000)
@@ -261,6 +294,7 @@ function checkOrder() {
 function validateUserOrder(selectedOrder) {
   const remaining = [...sticks.value]
   let incorrectSticks = 0
+  const incorrectIds = []
 
   for (let i = 0; i < selectedOrder.length; i++) {
     const pickedStick = selectedOrder[i]
@@ -268,6 +302,7 @@ function validateUserOrder(selectedOrder) {
 
     if (pickedIndex === -1) {
       incorrectSticks++
+      incorrectIds.push(pickedStick.id)
       continue
     }
 
@@ -278,6 +313,7 @@ function validateUserOrder(selectedOrder) {
 
     if (isBlocked) {
       incorrectSticks++
+      incorrectIds.push(pickedStick.id)
     } else {
       remaining.splice(pickedIndex, 1)
     }
@@ -285,7 +321,8 @@ function validateUserOrder(selectedOrder) {
 
   return {
     isValid: incorrectSticks === 0,
-    incorrectCount: incorrectSticks
+    incorrectCount: incorrectSticks,
+    incorrectStickIds: incorrectIds
   }
 }
 
@@ -300,6 +337,13 @@ function getStickColour(stick) {
     return '#95A5A6'
   }
   return stick.colour
+}
+
+function getResultStickColour(stick) {
+  if (incorrectStickIds.value.includes(stick.id)) {
+    return stick.colour
+  }
+  return '#D3D3D3'
 }
 
 async function shareResults() {
@@ -502,6 +546,29 @@ async function shareResults() {
 .result-details p {
   margin: 0.5rem 0;
   color: #555;
+}
+
+.results-canvas-container {
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: center;
+}
+
+.results-canvas {
+  width: 60%;
+  max-width: 250px;
+  height: auto;
+  background: #f8f9fa;
+  border-radius: 0.5rem;
+  border: 2px solid #e0e0e0;
+}
+
+.result-stick {
+  pointer-events: none;
+}
+
+.result-stick-border {
+  pointer-events: none;
 }
 
 .share-message {
