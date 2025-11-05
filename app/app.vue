@@ -84,7 +84,8 @@
       </div>
 
       <div class="result-details" v-if="!isCorrect">
-        <p>Your order wasn't valid. At least one stick you tried to pick was still blocked by another stick on top of it.</p>
+        <p><strong>{{ incorrectCount }}</strong> {{ incorrectCount === 1 ? 'stick was' : 'sticks were' }} incorrect</p>
+        <p>{{ incorrectCount === 1 ? 'This stick was' : 'These sticks were' }} still blocked by {{ incorrectCount === 1 ? 'another' : 'other' }} {{ incorrectCount === 1 ? 'stick' : 'sticks' }} on top when you tried to pick {{ incorrectCount === 1 ? 'it' : 'them' }} up.</p>
       </div>
 
       <div class="button-group">
@@ -115,6 +116,7 @@ const shareMessage = ref('')
 const gameCanvas = ref(null)
 const startTime = ref(null)
 const elapsedTime = ref(0)
+const incorrectCount = ref(0)
 
 const stickColours = [
   '#E74C3C', // red
@@ -215,6 +217,7 @@ function startGame() {
   selectedSticks.value = []
   shareMessage.value = ''
   elapsedTime.value = 0
+  incorrectCount.value = 0
   sticks.value = generateSticks()
   startTime.value = Date.now()
 }
@@ -244,7 +247,9 @@ function handleCanvasClick(event) {
 }
 
 function checkOrder() {
-  isCorrect.value = validateUserOrder(selectedSticks.value)
+  const validation = validateUserOrder(selectedSticks.value)
+  isCorrect.value = validation.isValid
+  incorrectCount.value = validation.incorrectCount
 
   if (startTime.value) {
     elapsedTime.value = Math.floor((Date.now() - startTime.value) / 1000)
@@ -255,13 +260,15 @@ function checkOrder() {
 
 function validateUserOrder(selectedOrder) {
   const remaining = [...sticks.value]
+  let incorrectSticks = 0
 
   for (let i = 0; i < selectedOrder.length; i++) {
     const pickedStick = selectedOrder[i]
     const pickedIndex = remaining.findIndex(s => s.id === pickedStick.id)
 
     if (pickedIndex === -1) {
-      return false
+      incorrectSticks++
+      continue
     }
 
     const isBlocked = remaining.some((other, j) => {
@@ -270,13 +277,16 @@ function validateUserOrder(selectedOrder) {
     })
 
     if (isBlocked) {
-      return false
+      incorrectSticks++
+    } else {
+      remaining.splice(pickedIndex, 1)
     }
-
-    remaining.splice(pickedIndex, 1)
   }
 
-  return true
+  return {
+    isValid: incorrectSticks === 0,
+    incorrectCount: incorrectSticks
+  }
 }
 
 function formatTime(seconds) {
@@ -296,7 +306,7 @@ async function shareResults() {
   const timeText = `Time: ${formatTime(elapsedTime.value)}`
   const text = isCorrect.value
     ? `🎉 I completed Pick Up Sticks in the correct order in ${formatTime(elapsedTime.value)}! Can you beat it?\n\n${window.location.href}`
-    : `I played Pick Up Sticks in ${formatTime(elapsedTime.value)}! Can you do better?\n\n${window.location.href}`
+    : `I played Pick Up Sticks in ${formatTime(elapsedTime.value)} with ${incorrectCount.value} incorrect ${incorrectCount.value === 1 ? 'stick' : 'sticks'}! Can you do better?\n\n${window.location.href}`
 
   try {
     await navigator.clipboard.writeText(text)
