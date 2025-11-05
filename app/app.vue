@@ -84,8 +84,7 @@
       </div>
 
       <div class="result-details" v-if="!isCorrect">
-        <p>Your order: {{ selectedSticks.map(s => s.id + 1).join(', ') }}</p>
-        <p>Correct order: {{ correctOrder.map(id => id + 1).join(', ') }}</p>
+        <p>Your order wasn't valid. At least one stick you tried to pick was still blocked by another stick on top of it.</p>
       </div>
 
       <div class="button-group">
@@ -112,7 +111,6 @@ const gameComplete = ref(false)
 const isCorrect = ref(false)
 const sticks = ref([])
 const selectedSticks = ref([])
-const correctOrder = ref([])
 const shareMessage = ref('')
 const gameCanvas = ref(null)
 const startTime = ref(null)
@@ -191,27 +189,7 @@ function validateStickConfiguration(sticks) {
     }
   }
 
-  const correctOrder = calculateCorrectOrder(sticks)
-  if (correctOrder.length !== sticks.length) {
-    return false
-  }
-
-  const canPickMultiple = sticks.some((stick, index) => {
-    const otherStick = sticks.find((s, i) => i !== index && s.zIndex !== stick.zIndex)
-    if (!otherStick) return false
-
-    const isBlocked = sticks.some(other => {
-      return other.zIndex > stick.zIndex && doSegmentsIntersect(stick, other)
-    })
-
-    const isOtherBlocked = sticks.some(other => {
-      return other.zIndex > otherStick.zIndex && doSegmentsIntersect(otherStick, other)
-    })
-
-    return !isBlocked && !isOtherBlocked && stick.zIndex !== otherStick.zIndex
-  })
-
-  return !canPickMultiple
+  return true
 }
 
 function doSegmentsIntersect(stick1, stick2) {
@@ -230,35 +208,6 @@ function doSegmentsIntersect(stick1, stick2) {
   return t >= -buffer && t <= 1 + buffer && u >= -buffer && u <= 1 + buffer
 }
 
-function calculateCorrectOrder(sticks) {
-  const order = []
-  const remaining = [...sticks]
-
-  while (remaining.length > 0) {
-    let foundUnblocked = false
-    for (let i = 0; i < remaining.length; i++) {
-      const stick = remaining[i]
-      const isBlocked = remaining.some((other, j) => {
-        if (i === j) return false
-        return other.zIndex > stick.zIndex && doSegmentsIntersect(stick, other)
-      })
-
-      if (!isBlocked) {
-        order.push(stick.id)
-        remaining.splice(i, 1)
-        foundUnblocked = true
-        break
-      }
-    }
-
-    if (!foundUnblocked && remaining.length > 0) {
-      break
-    }
-  }
-
-  return order
-}
-
 function startGame() {
   gameStarted.value = true
   gameComplete.value = false
@@ -267,7 +216,6 @@ function startGame() {
   shareMessage.value = ''
   elapsedTime.value = 0
   sticks.value = generateSticks()
-  correctOrder.value = calculateCorrectOrder(sticks.value)
   startTime.value = Date.now()
 }
 
@@ -296,14 +244,39 @@ function handleCanvasClick(event) {
 }
 
 function checkOrder() {
-  const selectedOrder = selectedSticks.value.map(s => s.id)
-  isCorrect.value = JSON.stringify(selectedOrder) === JSON.stringify(correctOrder.value)
+  isCorrect.value = validateUserOrder(selectedSticks.value)
 
   if (startTime.value) {
     elapsedTime.value = Math.floor((Date.now() - startTime.value) / 1000)
   }
 
   gameComplete.value = true
+}
+
+function validateUserOrder(selectedOrder) {
+  const remaining = [...sticks.value]
+
+  for (let i = 0; i < selectedOrder.length; i++) {
+    const pickedStick = selectedOrder[i]
+    const pickedIndex = remaining.findIndex(s => s.id === pickedStick.id)
+
+    if (pickedIndex === -1) {
+      return false
+    }
+
+    const isBlocked = remaining.some((other, j) => {
+      if (j === pickedIndex) return false
+      return other.zIndex > pickedStick.zIndex && doSegmentsIntersect(pickedStick, other)
+    })
+
+    if (isBlocked) {
+      return false
+    }
+
+    remaining.splice(pickedIndex, 1)
+  }
+
+  return true
 }
 
 function formatTime(seconds) {
