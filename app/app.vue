@@ -369,7 +369,9 @@ async function shareResults() {
 
 .game-container {
   height: 100vh;
+  height: 100dvh;
   max-height: 100vh;
+  max-height: 100dvh;
   overflow: hidden;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
@@ -377,6 +379,12 @@ async function shareResults() {
   align-items: center;
   padding: 1rem;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
 }
 
 .header {
@@ -402,7 +410,7 @@ async function shareResults() {
 .results-screen {
   background: white;
   border-radius: 1rem;
-  padding: 2rem;
+  padding: 1.5rem;
   text-align: center;
   max-width: 400px;
   width: 100%;
@@ -412,7 +420,7 @@ async function shareResults() {
   flex-direction: column;
   justify-content: center;
   overflow-y: auto;
-  max-height: calc(100vh - 8rem);
+  min-height: 0;
 }
 
 .game-area {
@@ -425,8 +433,8 @@ async function shareResults() {
   flex: 1;
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - 8rem);
   overflow: hidden;
+  min-height: 0;
 }
 
 .info-bar {
@@ -595,15 +603,6 @@ async function shareResults() {
 }
 
 @media (max-width: 480px) {
-  .title {
-    font-size: 1.5rem;
-    margin: 0 0 0.25rem 0;
-  }
-
-  .subtitle {
-    font-size: 0.875rem;
-  }
-
   .game-container {
     padding: 0.5rem;
   }
@@ -612,11 +611,56 @@ async function shareResults() {
     margin-bottom: 0.5rem;
   }
 
+  .title {
+    font-size: 1.25rem;
+    margin: 0 0 0.25rem 0;
+  }
+
+  .subtitle {
+    font-size: 0.75rem;
+  }
+
   .start-screen,
-  .results-screen,
-  .game-area {
+  .results-screen {
     padding: 1rem;
-    max-height: calc(100vh - 6rem);
+    border-radius: 0.75rem;
+  }
+
+  .game-area {
+    padding: 0.75rem;
+    border-radius: 0.75rem;
+  }
+
+  .result-icon {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .result-title {
+    font-size: 1.5rem;
+    margin: 0 0 0.5rem 0;
+  }
+
+  .result-message {
+    font-size: 0.875rem;
+    margin: 0 0 0.75rem 0;
+  }
+
+  .time-display {
+    margin-bottom: 1rem;
+  }
+
+  .time-text {
+    font-size: 1.1rem;
+  }
+
+  .result-details {
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .results-canvas-container {
+    margin-bottom: 1rem;
   }
 }
 </style>
