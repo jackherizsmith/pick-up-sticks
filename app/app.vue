@@ -368,7 +368,9 @@ async function shareResults() {
 }
 
 .game-container {
-  min-height: 100vh;
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   flex-direction: column;
@@ -380,7 +382,8 @@ async function shareResults() {
 .header {
   text-align: center;
   color: white;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
+  flex-shrink: 0;
 }
 
 .title {
@@ -404,6 +407,12 @@ async function shareResults() {
   max-width: 400px;
   width: 100%;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow-y: auto;
+  max-height: calc(100vh - 8rem);
 }
 
 .game-area {
@@ -413,6 +422,11 @@ async function shareResults() {
   max-width: 400px;
   width: 100%;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 8rem);
+  overflow: hidden;
 }
 
 .info-bar {
@@ -422,15 +436,18 @@ async function shareResults() {
   margin-bottom: 1rem;
   font-weight: 600;
   color: #333;
+  flex-shrink: 0;
 }
 
 .canvas {
   width: 100%;
-  height: auto;
+  max-height: 100%;
   background: #f8f9fa;
   border-radius: 0.5rem;
   display: block;
   touch-action: none;
+  flex: 1;
+  object-fit: contain;
 }
 
 .stick {
@@ -497,6 +514,7 @@ async function shareResults() {
 .check-btn {
   width: 100%;
   margin-top: 1rem;
+  flex-shrink: 0;
 }
 
 .button-group {
@@ -579,6 +597,7 @@ async function shareResults() {
 @media (max-width: 480px) {
   .title {
     font-size: 1.5rem;
+    margin: 0 0 0.25rem 0;
   }
 
   .subtitle {
@@ -587,6 +606,17 @@ async function shareResults() {
 
   .game-container {
     padding: 0.5rem;
+  }
+
+  .header {
+    margin-bottom: 0.5rem;
+  }
+
+  .start-screen,
+  .results-screen,
+  .game-area {
+    padding: 1rem;
+    max-height: calc(100vh - 6rem);
   }
 }
 </style>
